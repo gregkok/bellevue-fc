@@ -39,11 +39,20 @@ function toggleMenu() {
         mobileMenu.classList.remove('hidden');
         setTimeout(() => mobileMenu.classList.remove('opacity-0'), 10);
         document.body.style.overflow = 'hidden';
+        mobileMenuBtn.setAttribute('aria-expanded', 'true');
+        mobileMenu.setAttribute('aria-hidden', 'false');
+        // focus first link for keyboard users
+        setTimeout(() => {
+            const first = mobileMenu.querySelector('.mobile-link');
+            if (first) first.focus();
+        }, 220);
     } else {
         mobileMenu.classList.add('opacity-0');
         setTimeout(() => {
             mobileMenu.classList.add('hidden');
             document.body.style.overflow = '';
+            mobileMenuBtn.setAttribute('aria-expanded', 'false');
+            mobileMenu.setAttribute('aria-hidden', 'true');
         }, 300);
     }
     menuIconOpen.classList.toggle('hidden');
@@ -55,6 +64,11 @@ document.querySelectorAll('.mobile-link').forEach(link => {
     link.addEventListener('click', () => {
         if (!mobileMenu.classList.contains('hidden')) toggleMenu();
     });
+});
+
+// Close mobile menu with ESC
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !mobileMenu.classList.contains('hidden')) toggleMenu();
 });
 
 
@@ -130,7 +144,7 @@ function renderPastEvents(events) {
                 <div class="flex overflow-x-auto hide-scrollbar snap-x snap-mandatory gap-3 pb-2 -mx-5 px-5 md:mx-0 md:px-0 md:grid md:grid-cols-4 md:gap-4">
                     ${event.images.map(img => `
                         <div class="w-56 h-56 md:w-full md:h-auto md:aspect-square flex-shrink-0 snap-center rounded-2xl overflow-hidden bg-slate-200">
-                            <img src="${img}" class="w-full h-full object-cover"/>
+                            <img src="${img}" loading="lazy" class="w-full h-full object-cover"/>
                         </div>
                     `).join('')}
                 </div>
@@ -143,7 +157,7 @@ function renderNews(newsItems) {
     document.getElementById('news-container').innerHTML = newsItems.map(news => `
         <article class="w-[85vw] md:w-full flex-shrink-0 snap-center cursor-pointer group">
             <div class="h-48 md:h-56 bg-slate-100 rounded-2xl mb-4 overflow-hidden relative">
-                <img src="https://images.unsplash.com/photo-${news.image}?auto=format&fit=crop&q=80&w=600" class="w-full h-full object-cover"/>
+                <img src="https://images.unsplash.com/photo-${news.image}?auto=format&fit=crop&q=80&w=600" loading="lazy" class="w-full h-full object-cover"/>
                 <span class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md text-bfc-blue">
                     ${news.category}
                 </span>
