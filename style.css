@@ -1,0 +1,16 @@
+ /* Hide scrollbar for native-feeling horizontal scroll areas */
+ .hide-scrollbar::-webkit-scrollbar {
+     display: none;
+ }
+
+ .hide-scrollbar {
+     -ms-overflow-style: none;
+     scrollbar-width: none;
+ }
+
+ /* Ensure inputs don't zoom on iOS */
+ input,
+ select,
+ textarea {
+     font-size: 16px !important;
+ }
