@@ -73,25 +73,33 @@ document.addEventListener('keydown', (e) => {
 
 
 // --- TABS LOGIC ---
-tabFuture.addEventListener('click', () => {
-    tabFuture.classList.add('bg-white', 'text-bfc-blue', 'shadow-sm');
-    tabFuture.classList.remove('text-slate-500');
-    tabPast.classList.remove('bg-white', 'text-bfc-blue', 'shadow-sm');
-    tabPast.classList.add('text-slate-500');
+if (tabFuture) {
+    tabFuture.addEventListener('click', () => {
+        tabFuture.classList.add('bg-white', 'text-bfc-blue', 'shadow-sm');
+        tabFuture.classList.remove('text-slate-500');
+        if (tabPast) {
+            tabPast.classList.remove('bg-white', 'text-bfc-blue', 'shadow-sm');
+            tabPast.classList.add('text-slate-500');
+        }
 
-    futureContainer.classList.remove('hidden');
-    pastContainer.classList.add('hidden');
-});
+        if (futureContainer) futureContainer.classList.remove('hidden');
+        if (pastContainer) pastContainer.classList.add('hidden');
+    });
+}
 
-tabPast.addEventListener('click', () => {
-    tabPast.classList.add('bg-white', 'text-bfc-blue', 'shadow-sm');
-    tabPast.classList.remove('text-slate-500');
-    tabFuture.classList.remove('bg-white', 'text-bfc-blue', 'shadow-sm');
-    tabFuture.classList.add('text-slate-500');
+if (tabPast) {
+    tabPast.addEventListener('click', () => {
+        tabPast.classList.add('bg-white', 'text-bfc-blue', 'shadow-sm');
+        tabPast.classList.remove('text-slate-500');
+        if (tabFuture) {
+            tabFuture.classList.remove('bg-white', 'text-bfc-blue', 'shadow-sm');
+            tabFuture.classList.add('text-slate-500');
+        }
 
-    pastContainer.classList.remove('hidden');
-    futureContainer.classList.add('hidden');
-});
+        if (pastContainer) pastContainer.classList.remove('hidden');
+        if (futureContainer) futureContainer.classList.add('hidden');
+    });
+}
 
 // --- CONTACT FORM LOGIC ---
 document.getElementById('contact-form').addEventListener('submit', (e) => {

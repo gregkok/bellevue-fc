@@ -62,11 +62,11 @@
                     <a href="#events"
                         class="text-white hover:text-bfc-yellow font-semibold text-sm uppercase tracking-wider transition-colors duration-200">Events</a>
                     <a href="#news"
-                        class="text-white hover:text-bfc-yellow font-semibold text-sm uppercase tracking-wider transition-colors duration-200">News</a>
+                        class="text-white hover:text-bfc-yellow font-semibold text-sm uppercase tracking-wider transition-colors duration-200 hidden">News</a>
                     <a href="#polls"
-                        class="text-white hover:text-bfc-yellow font-semibold text-sm uppercase tracking-wider transition-colors duration-200">Polls</a>
+                        class="text-white hover:text-bfc-yellow font-semibold text-sm uppercase tracking-wider transition-colors duration-200 hidden">Polls</a>
                     <a href="#contact"
-                        class="bg-bfc-yellow text-bfc-blue px-6 py-2.5 rounded-full font-bold hover:bg-yellow-300 transition-colors shadow-md">Join
+                        class="bg-bfc-yellow text-bfc-blue px-6 py-2.5 rounded-full font-bold hover:bg-yellow-300 transition-colors shadow-md hidden">Join
                         Us</a>
                 </div>
 
@@ -93,13 +93,13 @@
                     class="mobile-link text-2xl font-bold text-white hover:text-bfc-yellow uppercase tracking-wider py-2">Matches
                     & Events</a>
                 <a href="#news"
-                    class="mobile-link text-2xl font-bold text-white hover:text-bfc-yellow uppercase tracking-wider py-2">Latest
+                    class="mobile-link text-2xl font-bold text-white hover:text-bfc-yellow uppercase tracking-wider py-2 hidden">Latest
                     News</a>
                 <a href="#polls"
-                    class="mobile-link text-2xl font-bold text-white hover:text-bfc-yellow uppercase tracking-wider py-2">Club
+                    class="mobile-link text-2xl font-bold text-white hover:text-bfc-yellow uppercase tracking-wider py-2 hidden">Club
                     Polls</a>
                 <a href="#contact"
-                    class="mobile-link mt-8 bg-bfc-yellow text-bfc-blue w-full py-4 rounded-xl font-bold text-xl uppercase tracking-wider shadow-lg">Join
+                    class="mobile-link mt-8 bg-bfc-yellow text-bfc-blue w-full py-4 rounded-xl font-bold text-xl uppercase tracking-wider shadow-lg hidden">Join
                     Us Today</a>
             </div>
         </div>
@@ -132,7 +132,7 @@
                 </p>
                 <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto px-2 md:px-0">
                     <a href="#events"
-                        class="bg-bfc-yellow text-bfc-blue w-full sm:w-auto px-8 py-4 rounded-xl font-bold text-lg text-center hover:bg-yellow-300 active:scale-95 transition-all shadow-lg flex justify-center items-center">
+                        class="bg-bfc-yellow text-bfc-blue w-full sm:w-auto px-8 py-4 rounded-xl font-bold text-lg text-center hover:bg-yellow-300 active:scale-95 transition-all shadow-lg flex justify-center items-center hidden">
                         View Schedule <i data-lucide="calendar" class="ml-2 w-5 h-5"></i>
                     </a>
                     <a href="#about"
@@ -211,14 +211,8 @@
             <!-- Segmented Control for Mobile / Standard Tabs for Desktop -->
             <div class="flex justify-center mb-8 md:mb-12">
                 <div class="bg-slate-200/80 p-1.5 rounded-xl flex w-full max-w-md relative">
-                    <button id="tab-future"
-                        class="flex-1 py-3 text-sm md:text-base font-bold rounded-lg transition-all bg-white text-bfc-blue shadow-sm">
-                        Upcoming
-                    </button>
-                    <button id="tab-past"
-                        class="flex-1 py-3 text-sm md:text-base font-bold rounded-lg transition-all text-slate-500 hover:text-slate-800">
-                        Past & Gallery
-                    </button>
+                        <button id="tab-future" class="px-4 py-2 rounded-lg bg-white text-bfc-blue shadow-sm font-semibold">Upcoming</button>
+                        <button id="tab-past" class="px-4 py-2 rounded-lg text-slate-500 hidden">Past</button>
                 </div>
             </div>
 
@@ -235,7 +229,7 @@
     </section>
 
     <!-- --- LATEST NEWS --- -->
-    <section id="news" class="py-16 md:py-24 bg-white">
+    <section id="news" class="py-16 md:py-24 bg-white hidden">
         <div class="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
             <div class="mb-10">
                 <h2 class="text-3xl md:text-4xl font-extrabold text-slate-900 mb-2">Latest News</h2>
@@ -253,7 +247,7 @@
     </section>
 
     <!-- --- POLLS --- -->
-    <section id="polls" class="py-16 md:py-24 bg-bfc-blue text-white relative overflow-hidden">
+    <section id="polls" class="py-16 md:py-24 bg-bfc-blue text-white relative overflow-hidden hidden">
         <div class="max-w-4xl mx-auto px-5 sm:px-6 lg:px-8 relative z-10 text-center">
             <h2 class="text-3xl md:text-4xl font-extrabold mb-4">Have Your Say</h2>
             <p class="text-base md:text-xl text-blue-100 mb-8 md:mb-12">
@@ -277,7 +271,7 @@
     </section>
 
     <!-- --- CONTACT US --- -->
-    <section id="contact" class="py-16 md:py-24 bg-slate-50">
+    <section id="contact" class="py-16 md:py-24 bg-slate-50 hidden">
         <div class="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
             <div class="flex flex-col lg:grid lg:grid-cols-2 gap-12 lg:gap-16">
                 <!-- Info -->
