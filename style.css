@@ -42,5 +42,5 @@ textarea {
     margin-top: 1rem;
 }
 
-/* Form focus */
+/* Form focus  */
 input:focus, select:focus, textarea:focus{ box-shadow: 0 0 0 4px rgba(0,51,102,0.06); }
