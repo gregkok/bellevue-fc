@@ -11,7 +11,7 @@ const contactForm = document.getElementById('contact-form');
 const contactSuccess = document.getElementById('contact-success');
 
 // Default Google Form URL for join requests - replace with your form link
-const joinFormUrl = 'https://forms.gle/REPLACE_WITH_YOUR_FORM';
+const joinFormUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSdPeQCVel3VL_6kfFlUK4VdT3aC5kJqm5q2kiCgV-GPtWM2gw/viewform';
 
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
