@@ -5,6 +5,9 @@
     --muted: #64748b;
 }
 
+/* Ensure anchored sections aren't hidden behind the fixed nav */
+html { scroll-padding-top: 5rem; }
+
 /* Hide scrollbar for native-feeling horizontal scroll areas */
 .hide-scrollbar::-webkit-scrollbar {
     display: none;
@@ -32,6 +35,12 @@ textarea {
 
 /* Mobile menu overlay subtle blur */
 #mobile-menu{ backdrop-filter: blur(6px); }
+
+/* Improve visibility of event cards on small screens */
+#future-events-container > * {
+    box-shadow: 0 6px 20px rgba(2,6,23,0.08);
+    margin-top: 1rem;
+}
 
 /* Form focus */
 input:focus, select:focus, textarea:focus{ box-shadow: 0 0 0 4px rgba(0,51,102,0.06); }
