@@ -126,11 +126,10 @@ function renderFutureEvents(events) {
                     <div class="flex items-center"><i data-lucide="calendar" class="w-4 h-4 mr-3 text-slate-400"></i><span class="font-medium">${event.date}</span></div>
                     <div class="flex items-center"><i data-lucide="clock" class="w-4 h-4 mr-3 text-slate-400"></i><span>${event.time}</span></div>
                     <div class="flex items-center"><i data-lucide="map-pin" class="w-4 h-4 mr-3 text-slate-400"></i><span>${event.location}</span></div>
-                </div>
                 ${event.type === 'Tournament' ? `
-                    <p class="mt-3 text-sm font-semibold text-slate-700">Cost: <span class="font-bold">Free for club members</span>, <span class="font-bold">150 kr</span> for non-members</p>
+                    <div class="flex items-center"><i data-lucide="ticket" class="w-4 h-4 mr-3 text-slate-400"></i><span>${event.fee}</span></div>
                 ` : ''}
-            </div>
+                </div>
             <div class="p-4 bg-slate-50 border-t border-slate-100">
                 <a href="${event.joinForm || joinFormUrl}" target="_blank" rel="noopener" class="w-full bg-white border border-slate-200 text-bfc-blue py-3 rounded-xl font-bold text-sm flex items-center justify-center hover:border-bfc-blue transition-colors">
                     I want to Join <i data-lucide="chevron-right" class="ml-1 w-4 h-4"></i>
