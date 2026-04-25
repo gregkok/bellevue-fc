@@ -28,6 +28,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Initialize icons AFTER the new HTML is injected
             lucide.createIcons();
+            // Load leaderboard if the container exists
+            if (document.getElementById('leaderboard-container')) {
+                try { if (typeof loadLeaderboard === 'function') loadLeaderboard(); } catch (e) { /* load later */ }
+                const btn = document.getElementById('reload-leaderboard');
+                if (btn) btn.addEventListener('click', () => { try { loadLeaderboard(); } catch(e){} });
+            }
         })
         .catch(error => {
             console.error("Error loading club data:", error);
@@ -182,4 +188,94 @@ function renderNews(newsItems) {
             <p class="text-sm text-slate-600 line-clamp-2">${news.summary}</p>
         </article>
     `).join('');
+}
+
+// --- Leaderboard: fetch published CSV and render ---
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1-2pvyiVeqrsTjx1YQRRNbqB60qgv7TCpkmKLwJKhOko/gviz/tq?tqx=out:csv&gid=0';
+
+function parseCSV(text) {
+    const rows = text.trim().split(/\r?\n/).map(r => r.trim());
+    if (!rows.length) return [];
+    const headers = rows.shift().split(',').map(h => h.trim().toLowerCase());
+    return rows.map(line => {
+        const cols = line.split(',').map(c => c.trim());
+        const obj = {};
+        headers.forEach((h,i) => obj[h] = cols[i] ?? '');
+        return obj;
+    });
+}
+
+function normalizeRecord(r) {
+    function cleanCell(s) { return String(s || '').replace(/^\s+|\s+$|^"+|"+$/g, '').trim(); }
+    const player = cleanCell(r['player'] || r['player of the week'] || r['name'] || Object.values(r)[0] || '');
+    const winsRaw = cleanCell(r['wins'] || r['numbers of wins'] || r['number of wins'] || r['tally'] || Object.values(r)[1] || '0');
+    const wins = parseInt((winsRaw.match(/-?\d+/) || ['0'])[0], 10) || 0;
+    return { player, wins };
+}
+
+async function loadLeaderboard(url = SHEET_CSV_URL) {
+    const container = document.getElementById('leaderboard-container');
+    const rest = document.getElementById('leaderboard-rest');
+    if (!container) return;
+    container.innerHTML = '<div class="col-span-full text-center py-8 text-slate-500">Loading…</div>';
+    rest.innerHTML = '';
+    try {
+        const res = await fetch(url, { cache: 'no-cache' });
+        if (!res.ok) throw new Error('Network error');
+        const text = await res.text();
+        const rows = parseCSV(text).map(normalizeRecord).filter(r => r.player);
+        const sorted = rows.sort((a,b) => b.wins - a.wins || a.player.localeCompare(b.player));
+        container.innerHTML = '';
+        // ensure exactly three slots for podium (use placeholders if needed)
+        const top = sorted.slice(0,3);
+        while (top.length < 3) top.push({ player: '—', wins: 0 });
+
+        const first = top[0];
+        const second = top[1];
+        const third = top[2];
+
+        function initialsOf(name) {
+            const cleaned = String(name || '').replace(/"/g,'').trim();
+            if (!cleaned) return '?';
+            const parts = cleaned.split(/\s+/).filter(Boolean);
+            if (parts.length === 1) return parts[0].slice(0,2).toUpperCase();
+            return (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+        }
+
+        const html = `
+            <div class="w-full flex items-end justify-center gap-6 md:gap-8">
+                <!-- Silver (2) -->
+                <div class="flex-1 flex flex-col items-center">
+                    <div class="text-sm text-slate-500 mb-2">#2</div>
+                    <div class="w-20 h-20 rounded-full bg-slate-300 flex items-center justify-center text-xl font-bold text-slate-800">${initialsOf(second.player)}</div>
+                    <div class="mt-3 text-sm font-bold text-slate-900">${second.player}</div>
+                    <div class="text-xs text-slate-500">${second.wins} ${second.wins === 1 ? 'win' : 'wins'}</div>
+                    <div class="mt-4 h-36 w-full bg-slate-100 rounded-t-xl"></div>
+                </div>
+
+                <!-- Gold (1) -->
+                <div class="flex-1 flex flex-col items-center">
+                    <div class="text-sm text-slate-500 mb-2">#1</div>
+                    <div class="w-24 h-24 rounded-full bg-gradient-to-br from-bfc-yellow to-bfc-blue flex items-center justify-center text-2xl font-extrabold text-white">${initialsOf(first.player)}</div>
+                    <div class="mt-3 text-lg font-bold text-slate-900">${first.player}</div>
+                    <div class="text-sm text-slate-500">${first.wins} ${first.wins === 1 ? 'win' : 'wins'}</div>
+                    <div class="mt-4 h-44 w-full bg-bfc-yellow rounded-t-xl shadow-md"></div>
+                </div>
+
+                <!-- Bronze (3) -->
+                <div class="flex-1 flex flex-col items-center">
+                    <div class="text-sm text-slate-500 mb-2">#3</div>
+                    <div class="w-20 h-20 rounded-full bg-amber-700 flex items-center justify-center text-xl font-bold text-white">${initialsOf(third.player)}</div>
+                    <div class="mt-3 text-sm font-bold text-slate-900">${third.player}</div>
+                    <div class="text-xs text-slate-500">${third.wins} ${third.wins === 1 ? 'win' : 'wins'}</div>
+                    <div class="mt-4 h-28 w-full bg-amber-200 rounded-t-xl"></div>
+                </div>
+            </div>
+        `;
+
+        container.innerHTML = html;
+    } catch (err) {
+        container.innerHTML = `<div class="col-span-full text-center py-8 text-red-500">Error loading leaderboard</div>`;
+        console.error('Leaderboard error:', err);
+    }
 }
