@@ -188,7 +188,7 @@
                             Founded in the heart of Stockholm, Bellevue United FC started as friends wanting to kick a ball without strict league commitments.
                         </p>
                         <p class="text-base md:text-lg text-slate-600 mb-8 leading-relaxed">
-                            We organize weekly friendly games where everyone is welcome. To keep the competitive spirit, we host small, action-packed day-long tournaments three times a year.
+                            Today, we organize weekly friendly games where everyone is welcome. To keep the competitive spirit, we host small, action-packed daily tournaments three times a year.
                         </p>
 
                         <div class="grid grid-cols-2 gap-4 md:gap-6">
@@ -386,6 +386,30 @@
                 </div>
             </div>
         </section>
+
+        <!-- --- NEWS MODAL --- -->
+        <div id="news-modal" class="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-sm hidden flex items-center justify-center p-4 md:p-6 opacity-0 transition-opacity duration-300" aria-modal="true" role="dialog">
+            <div id="news-modal-content" class="bg-white rounded-2xl md:rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto transform scale-95 transition-transform duration-300 relative flex flex-col hide-scrollbar">
+                <button id="close-news-modal" class="absolute top-4 right-4 z-20 p-2.5 bg-black/40 hover:bg-black/70 text-white rounded-full transition-colors backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-bfc-yellow">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+                
+                <div class="w-full h-64 sm:h-80 md:h-[500px] bg-slate-900 relative flex-shrink-0">
+                    <img id="news-modal-image" src="" alt="News Cover" class="w-full h-full object-contain" />
+                    <span id="news-modal-category" class="absolute top-4 left-4 bg-white/95 backdrop-blur-sm px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md text-bfc-blue shadow-sm z-10">
+                    </span>
+                </div>
+                
+                <div class="p-6 md:p-10 flex-grow bg-white">
+                    <div class="flex items-center text-sm text-slate-500 mb-4 font-medium">
+                        <i data-lucide="calendar" class="w-4.5 h-4.5 mr-2"></i> <span id="news-modal-date"></span>
+                    </div>
+                    <h2 id="news-modal-title" class="text-3xl md:text-4xl font-extrabold text-slate-900 mb-6 leading-tight"></h2>
+                    <div id="news-modal-body" class="text-slate-700 md:text-lg leading-relaxed space-y-5">
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <!-- --- FOOTER --- -->
@@ -627,16 +651,19 @@
             `).join('');
         }
 
+        let currentNewsItems = [];
+
         function renderNews(newsItems) {
-            document.getElementById('news-container').innerHTML = newsItems.map(news => {
+            currentNewsItems = newsItems;
+            document.getElementById('news-container').innerHTML = newsItems.map((news, index) => {
                 // Determine if it's a local file/URL or an unsplash ID string.
                 const imgSrc = (news.image.startsWith('./') || news.image.startsWith('http')) 
                     ? news.image 
                     : `https://images.unsplash.com/photo-${news.image}?auto=format&fit=crop&q=80&w=600`;
 
                 return `
-                <article class="w-[85vw] md:w-auto flex-shrink-0 snap-center cursor-pointer group hover-card bg-white rounded-2xl p-4 border border-slate-100">
-                    <div class="h-48 bg-slate-100 rounded-xl mb-5 overflow-hidden relative">
+                <article onclick="openNewsModal(${index})" class="w-[85vw] md:w-auto flex-shrink-0 snap-center cursor-pointer group hover-card bg-white rounded-2xl p-4 border border-slate-100 flex flex-col">
+                    <div class="h-48 bg-slate-100 rounded-xl mb-5 overflow-hidden relative flex-shrink-0">
                         <img src="${imgSrc}" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
                         <span class="absolute top-3 left-3 bg-white/95 backdrop-blur-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md text-bfc-blue shadow-sm">
                             ${news.category}
@@ -646,11 +673,70 @@
                         <i data-lucide="calendar" class="w-3.5 h-3.5 mr-1.5"></i> ${news.date}
                     </div>
                     <h3 class="text-xl font-bold text-slate-900 mb-2 line-clamp-2 group-hover:text-bfc-blue transition-colors">${news.title}</h3>
-                    <p class="text-sm text-slate-600 line-clamp-2">${news.summary}</p>
+                    <p class="text-sm text-slate-600 line-clamp-2 flex-grow">${news.summary}</p>
                 </article>
                 `;
             }).join('');
         }
+
+        // --- NEWS MODAL LOGIC ---
+        function openNewsModal(index) {
+            if (!currentNewsItems || !currentNewsItems[index]) return;
+            const news = currentNewsItems[index];
+            
+            const imgSrc = (news.image.startsWith('./') || news.image.startsWith('http')) 
+                ? news.image 
+                : `https://images.unsplash.com/photo-${news.image}?auto=format&fit=crop&q=80&w=1200`;
+                
+            document.getElementById('news-modal-image').src = imgSrc;
+            document.getElementById('news-modal-category').textContent = news.category;
+            document.getElementById('news-modal-date').textContent = news.date;
+            document.getElementById('news-modal-title').textContent = news.title;
+            
+            // Format content: treat newlines as paragraphs if simple text, or just output summary
+            let bodyHtml = '';
+            const contentToUse = news.content || news.summary;
+            if (contentToUse) {
+                bodyHtml = contentToUse.split('\n').filter(p => p.trim()).map(p => `<p>${p}</p>`).join('');
+            }
+            document.getElementById('news-modal-body').innerHTML = bodyHtml;
+            
+            const modal = document.getElementById('news-modal');
+            const modalContent = document.getElementById('news-modal-content');
+            
+            modal.classList.remove('hidden');
+            // Force reflow
+            void modal.offsetWidth;
+            modal.classList.remove('opacity-0');
+            modalContent.classList.remove('scale-95');
+            
+            document.body.style.overflow = 'hidden';
+            lucide.createIcons();
+        }
+
+        function closeNewsModal() {
+            const modal = document.getElementById('news-modal');
+            const modalContent = document.getElementById('news-modal-content');
+            
+            modal.classList.add('opacity-0');
+            modalContent.classList.add('scale-95');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+                document.getElementById('news-modal-image').src = ''; // clear image
+            }, 300);
+        }
+
+        document.getElementById('close-news-modal')?.addEventListener('click', closeNewsModal);
+        document.getElementById('news-modal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'news-modal') closeNewsModal();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !document.getElementById('news-modal').classList.contains('hidden')) {
+                closeNewsModal();
+            }
+        });
 
         // --- INIT & LOGIC ---
         document.addEventListener('DOMContentLoaded', async () => {
@@ -666,6 +752,11 @@
                         date: "April 26, 2026",
                         category: "Tournament",
                         summary: "Get ready for our biggest tournament yet! The Bellevue United Summer Cup 2026 is officially on the horizon. Check out the flyer and start getting your team ready.",
+                        content: `Get ready for our biggest tournament yet! The Bellevue United Summer Cup 2026 is officially on the horizon.
+
+After a fantastic turnout last year, we are expanding the format to include better prizes, and a full day of fun for friends and families alongside the matches.
+
+Register as soon as possible and bring as many of your friends as you can! The more the merrier. We can't wait to see you all there!`,
                         image: "./assets/images/Summer_cup_2026.png"
                     }
                 ] 
