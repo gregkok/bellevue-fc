@@ -13,6 +13,77 @@ const contactSuccess = document.getElementById('contact-success');
 // Default Google Form URL for join requests - replace with your form link
 const joinFormUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSdPeQCVel3VL_6kfFlUK4VdT3aC5kJqm5q2kiCgV-GPtWM2gw/viewform';
 
+// Public Google Sheet CSV URL for future games (replace ID/gid if needed)
+const SHEET_FUTURE_GAMES_CSV_URL = 'https://docs.google.com/spreadsheets/d/1_FUgtBgOJOmxYNM67BVxpkDKDVuYGhmqm3dN--rYzls/gviz/tq?tqx=out:csv&gid=0';
+
+/*
+ Load future games from a public Google Sheet exported as CSV.
+ Expected headers include: Date, Start time, End Time, Day, Pitch, Google maps link
+ The function returns an array of event objects compatible with renderFutureEvents()
+*/
+function loadFutureGamesFromSheet(url) {
+    return fetch(url, { cache: 'no-cache' }).then(res => {
+        if (!res.ok) throw new Error('Sheet fetch failed');
+        return res.text();
+    }).then(text => {
+        // Robust CSV parser that handles quoted fields with commas and CRLFs
+        function parseCSV(text) {
+            const rows = [];
+            let cur = '';
+            let row = [];
+            let inQuotes = false;
+            for (let i = 0; i < text.length; i++) {
+                const ch = text[i];
+                if (ch === '"') {
+                    if (inQuotes && text[i + 1] === '"') { cur += '"'; i++; }
+                    else { inQuotes = !inQuotes; }
+                } else if (ch === ',' && !inQuotes) {
+                    row.push(cur); cur = '';
+                } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+                    // handle CRLF
+                    if (ch === '\r' && text[i + 1] === '\n') continue;
+                    row.push(cur); cur = '';
+                    rows.push(row); row = [];
+                } else {
+                    cur += ch;
+                }
+            }
+            // push last
+            if (cur !== '' || row.length) { row.push(cur); rows.push(row); }
+            return rows.map(r => r.map(c => String(c || '').replace(/^\s+|\s+$/g, '').replace(/^"|"$/g, '').replace(/""/g, '"')));
+        }
+
+        const rows = parseCSV(text).filter(r => r.length > 0);
+        if (!rows.length) return [];
+        const headers = rows.shift().map(h => String(h || '').toLowerCase());
+        const objects = rows.map(cols => {
+            const obj = {};
+            headers.forEach((h, i) => obj[h] = (cols[i] || '').trim());
+            return obj;
+        });
+
+        return objects.map(r => {
+            const date = r['date'] || r['day'] || '';
+            const start = r['start time'] || r['start_time'] || r['start'] || '';
+            const end = r['end time'] || r['end_time'] || r['end'] || '';
+            const time = start && end ? `${start} - ${end}` : (start || end || '');
+            const pitch = r['pitch'] || r['location'] || r['place'] || '';
+            const maps = r['google maps link'] || r['google maps'] || r['maps'] || '';
+            const title = pitch ? `Match at ${pitch}` : (date ? `Match — ${date}` : 'Match');
+            return {
+                type: 'Match',
+                title,
+                date,
+                time,
+                // keep raw name and maps link separate so rendering can create a highlighted clickable link
+                location: pitch || '',
+                mapsLink: maps || '',
+                joinForm: joinFormUrl
+            };
+        });
+    });
+}
+
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('current-year').textContent = new Date().getFullYear();
@@ -20,9 +91,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // FETCH DATA FROM JSON FILE
     fetch('data.json')
         .then(response => response.json())
-        .then(data => {
-            // Render the data to the screen
-            renderFutureEvents(data.futureEvents);
+        .then(async (data) => {
+            // Try loading additional future games from the Google Sheet and merge
+            let sheetEvents = [];
+            try {
+                sheetEvents = await loadFutureGamesFromSheet(SHEET_FUTURE_GAMES_CSV_URL);
+            } catch (err) {
+                console.warn('Could not load future games sheet:', err);
+            }
+
+            const combinedFuture = [ ...(data.futureEvents || []), ...sheetEvents ];
+
+            // Render the data to the screen (with sheet events merged)
+            renderFutureEvents(combinedFuture);
             renderPastEvents(data.pastEvents);
             renderNews(data.news);
 
@@ -121,20 +202,31 @@ document.getElementById('contact-form').addEventListener('submit', (e) => {
 
 // --- RENDERING FUNCTIONS ---
 function renderFutureEvents(events) {
-    futureContainer.innerHTML = events.map(event => `
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col w-full">
-            <div class="h-2 ${event.type === 'Tournament' ? 'bg-bfc-yellow' : 'bg-bfc-blue'}"></div>
+    futureContainer.innerHTML = events.map(event => {
+        // Build location HTML: if mapsLink is present, show highlighted clickable link
+        let locationHtml = '';
+        if (event.mapsLink) {
+            const label = event.location || event.mapsLink;
+            locationHtml = `<a href="${event.mapsLink}" target="_blank" rel="noopener" class="text-bfc-blue font-semibold hover:underline">${label}</a>`;
+        } else if (event.location && /<a\s/i.test(String(event.location))) {
+            locationHtml = event.location; // already an anchor/html
+        } else if (event.location) {
+            locationHtml = `<span>${event.location}</span>`;
+        }
+
+        return `
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col w-full mb-6">
+            <div class="h-2 ${event.type === 'Tournament' ? 'bg-bfc-yellow' : 'bg-bfc-blue'} rounded-t-2xl"></div>
             <div class="p-5 md:p-6 flex-grow">
-                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md mb-3 inline-block ${event.type === 'Tournament' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'
-        }">${event.type}</span>
+                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md mb-3 inline-block ${event.type === 'Tournament' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}">${event.type}</span>
                 <h3 class="text-xl font-bold text-slate-900 mb-4">${event.title}</h3>
                 <div class="space-y-2.5 text-sm text-slate-600">
-                    <div class="flex items-center"><i data-lucide="calendar" class="w-4 h-4 mr-3 text-slate-400"></i><span class="font-medium">${event.date}</span></div>
-                    <div class="flex items-center"><i data-lucide="clock" class="w-4 h-4 mr-3 text-slate-400"></i><span>${event.time}</span></div>
-                    <div class="flex items-center"><i data-lucide="map-pin" class="w-4 h-4 mr-3 text-slate-400"></i><span>${event.location}</span></div>
-                ${event.type === 'Tournament' ? `
+                    ${event.date ? `<div class="flex items-center"><i data-lucide="calendar" class="w-4 h-4 mr-3 text-slate-400"></i><span class="font-medium">${event.date}</span></div>` : ''}
+                    ${event.time ? `<div class="flex items-center"><i data-lucide="clock" class="w-4 h-4 mr-3 text-slate-400"></i><span>${event.time}</span></div>` : ''}
+                    ${locationHtml ? `<div class="flex items-center"><i data-lucide="map-pin" class="w-4 h-4 mr-3 text-slate-400"></i><span>${locationHtml}</span></div>` : ''}
+                    ${event.type === 'Tournament' && event.fee ? `
                     <div class="flex items-center"><i data-lucide="ticket" class="w-4 h-4 mr-3 text-slate-400"></i><span>${event.fee}</span></div>
-                ` : ''}
+                    ` : ''}
                 </div>
             <div class="p-4 bg-slate-50 border-t border-slate-100">
                 <a href="${event.joinForm || joinFormUrl}" target="_blank" rel="noopener" class="w-full bg-white border border-slate-200 text-bfc-blue py-3 rounded-xl font-bold text-sm flex items-center justify-center hover:border-bfc-blue transition-colors">
@@ -142,7 +234,8 @@ function renderFutureEvents(events) {
                 </a>
             </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 function renderPastEvents(events) {
