@@ -407,6 +407,8 @@
                     <h2 id="news-modal-title" class="text-3xl md:text-4xl font-extrabold text-slate-900 mb-6 leading-tight"></h2>
                     <div id="news-modal-body" class="text-slate-700 md:text-lg leading-relaxed space-y-5">
                     </div>
+                    <div id="news-modal-actions" class="p-6 md:p-8 border-t border-slate-100 flex justify-end gap-3">
+                    </div>
                 </div>
             </div>
         </div>
@@ -700,6 +702,22 @@
                 bodyHtml = contentToUse.split('\n').filter(p => p.trim()).map(p => `<p>${p}</p>`).join('');
             }
             document.getElementById('news-modal-body').innerHTML = bodyHtml;
+
+            // Insert registration link when available or when the news is the Summer Cup
+            try {
+                const actionsEl = document.getElementById('news-modal-actions');
+                if (actionsEl) {
+                    // Prefer explicit link on the news item, then fallback to joinFormUrl when it's Summer Cup / Tournament
+                    const regLink = news.joinForm || news.registrationLink || ((news.title && news.title.toLowerCase().includes('summer cup')) || (news.category && news.category.toLowerCase() === 'tournament') ? joinFormUrl : null);
+                    if (regLink) {
+                        actionsEl.innerHTML = `<a href="${regLink}" target="_blank" rel="noopener noreferrer" class="bg-bfc-yellow text-bfc-blue px-5 py-3 rounded-xl font-bold hover:bg-yellow-300 transition-colors flex items-center gap-2">Register for Summer Cup <i data-lucide="external-link" class="w-4 h-4"></i></a>`;
+                    } else {
+                        actionsEl.innerHTML = '';
+                    }
+                }
+            } catch (err) {
+                console.warn('Could not set news modal actions', err);
+            }
             
             const modal = document.getElementById('news-modal');
             const modalContent = document.getElementById('news-modal-content');
