@@ -530,13 +530,36 @@
                 });
 
                 const records = data.map(r => {
-                    const player = r['player'] || r['name'] || Object.values(r)[0] || '';
-                    const winsRaw = r['wins'] || r['tally'] || Object.values(r)[1] || '0';
-                    const wins = parseInt((winsRaw.match(/-?\d+/) || ['0'])[0], 10) || 0;
-                    return { player, wins };
-                }).filter(r => r.player);
+                    const player = r['player of the week'] || Object.values(r)[0] || '';
+                    const winsRaw = r['numbers of wins'] || Object.values(r)[1] || '0';
+                    const votesRaw = r['total votes'] || Object.values(r)[2] || '0';
+                    const wins =
+        parseInt((String(winsRaw).match(/-?\d+/) || ['0'])[0], 10) || 0;
 
-                const sorted = records.sort((a,b) => b.wins - a.wins || a.player.localeCompare(b.player));
+    const totalVotes =
+        parseInt((String(votesRaw).match(/-?\d+/) || ['0'])[0], 10) || 0;
+
+    return {
+        player,
+        wins,
+        totalVotes
+    };
+}).filter(r => r.player);
+
+                const sorted = records.sort((a, b) => {
+    // Primary: number of POTW wins
+    if (b.wins !== a.wins) {
+        return b.wins - a.wins;
+    }
+
+    // Secondary: total votes
+    if (b.totalVotes !== a.totalVotes) {
+        return b.totalVotes - a.totalVotes;
+    }
+
+    // Final tie-breaker
+    return a.player.localeCompare(b.player);
+});
                 
                 // Ensure exactly three slots
                 const top = sorted.slice(0,3);
