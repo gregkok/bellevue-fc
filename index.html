@@ -453,6 +453,7 @@
         const joinFormUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSdPeQCVel3VL_6kfFlUK4VdT3aC5kJqm5q2kiCgV-GPtWM2gw/viewform';
         const SHEET_FUTURE_GAMES_CSV_URL = 'https://docs.google.com/spreadsheets/d/1_FUgtBgOJOmxYNM67BVxpkDKDVuYGhmqm3dN--rYzls/gviz/tq?tqx=out:csv&gid=0';
         const SHEET_LEADERBOARD_CSV_URL = 'https://docs.google.com/spreadsheets/d/1-2pvyiVeqrsTjx1YQRRNbqB60qgv7TCpkmKLwJKhOko/gviz/tq?tqx=out:csv&gid=0';
+        const SHEET_NEWS_CSV_URL = 'https://docs.google.com/spreadsheets/d/1-9fi7BbYcAwSlc93q-Ts3TU4k9UcQc8iY0rl4E-eFu0/gviz/tq?tqx=out:csv&gid=0';
 
         // --- CSV PARSING UTILS ---
         function parseCSV(text) {
@@ -592,6 +593,49 @@
             }
         }
 
+
+        async function loadNewsFromSheet(url = SHEET_NEWS_CSV_URL) {
+            const res = await fetch(url, { cache: 'no-cache' });
+            if (!res.ok) throw new Error('News sheet fetch failed');
+
+            const text = await res.text();
+            const rows = parseCSV(text);
+
+            if (!rows.length) return [];
+
+            const headers = rows.shift().map(h => h.toLowerCase());
+
+            return rows.map(cols => {
+                const item = {};
+                headers.forEach((h, i) => item[h] = cols[i] || '');
+
+                return {
+                    title: item.title || '',
+                    date: item.postdate || '',
+                    category: item.category || '',
+                    summary: item.summary || '',
+                    content: item.content || '',
+                    image: item.image || '',
+                    buttonName: item.buttonname || '',
+                    buttonLink: item.buttonlink || '',
+                    expirationDate: item.expirationdate || ''
+                };
+            }).sort((a, b) => new Date(b.date) - new Date(a.date));
+        }
+
+        function isExpired(expirationDate) {
+            if (!expirationDate) return false;
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            const expiry = new Date(expirationDate);
+            if (isNaN(expiry.getTime())) return false;
+
+            expiry.setHours(0,0,0,0);
+            return expiry < today;
+        }
+
+
         // --- RENDERERS ---
         function renderFutureEvents(events) {
             futureContainer.innerHTML = events.map(event => {
@@ -659,9 +703,7 @@
             currentNewsItems = newsItems;
             document.getElementById('news-container').innerHTML = newsItems.map((news, index) => {
                 // Determine if it's a local file/URL or an unsplash ID string.
-                const imgSrc = (news.image.startsWith('./') || news.image.startsWith('http')) 
-                    ? news.image 
-                    : `https://images.unsplash.com/photo-${news.image}?auto=format&fit=crop&q=80&w=600`;
+                const imgSrc = news.image;
 
                 return `
                 <article onclick="openNewsModal(${index})" class="w-[85vw] md:w-auto flex-shrink-0 snap-center cursor-pointer group hover-card bg-white rounded-2xl p-4 border border-slate-100 flex flex-col">
@@ -686,9 +728,7 @@
             if (!currentNewsItems || !currentNewsItems[index]) return;
             const news = currentNewsItems[index];
             
-            const imgSrc = (news.image.startsWith('./') || news.image.startsWith('http')) 
-                ? news.image 
-                : `https://images.unsplash.com/photo-${news.image}?auto=format&fit=crop&q=80&w=1200`;
+            const imgSrc = news.image;
                 
             document.getElementById('news-modal-image').src = imgSrc;
             document.getElementById('news-modal-category').textContent = news.category;
@@ -703,20 +743,15 @@
             }
             document.getElementById('news-modal-body').innerHTML = bodyHtml;
 
-            // Insert registration link when available or when the news is the Summer Cup
-            try {
-                const actionsEl = document.getElementById('news-modal-actions');
-                if (actionsEl) {
-                    // Prefer explicit link on the news item, then fallback to joinFormUrl when it's Summer Cup / Tournament
-                    const regLink = news.joinForm || news.registrationLink || ((news.title && news.title.toLowerCase().includes('summer cup')) || (news.category && news.category.toLowerCase() === 'tournament') ? joinFormUrl : null);
-                    if (regLink) {
-                        actionsEl.innerHTML = `<a href="${regLink}" target="_blank" rel="noopener noreferrer" class="bg-bfc-yellow text-bfc-blue px-5 py-3 rounded-xl font-bold hover:bg-yellow-300 transition-colors flex items-center gap-2">Register for Summer Cup <i data-lucide="external-link" class="w-4 h-4"></i></a>`;
-                    } else {
-                        actionsEl.innerHTML = '';
-                    }
-                }
-            } catch (err) {
-                console.warn('Could not set news modal actions', err);
+            const actionsEl = document.getElementById('news-modal-actions');
+            const expired = isExpired(news.expirationDate);
+
+            if (news.buttonName && news.buttonLink) {
+                actionsEl.innerHTML = expired
+                    ? `<button disabled class="bg-slate-300 text-slate-500 px-5 py-3 rounded-xl font-bold cursor-not-allowed">Registration Closed</button>`
+                    : `<a href="${news.buttonLink}" target="_blank" rel="noopener noreferrer" class="bg-bfc-yellow text-bfc-blue px-5 py-3 rounded-xl font-bold hover:bg-yellow-300 transition-colors">${news.buttonName}</a>`;
+            } else {
+                actionsEl.innerHTML = '';
             }
             
             const modal = document.getElementById('news-modal');
@@ -759,42 +794,7 @@
         // --- INIT & LOGIC ---
         document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('current-year').textContent = new Date().getFullYear();
-
-            // Default local data including the new injected news item
-            let localData = { 
-                futureEvents: [], 
-                pastEvents: [], 
-                news: [
-                    {
-                        title: "Bellevue United Summer Cup 2026 Announced!",
-                        date: "April 26, 2026",
-                        category: "Tournament",
-                        summary: "Get ready for our biggest tournament yet! The Bellevue United Summer Cup 2026 is officially on the horizon. Check out the flyer and start getting your team ready.",
-                        content: `Get ready for our biggest tournament yet! The Bellevue United Summer Cup 2026 is officially on the horizon.
-
-After a fantastic turnout last year, we are expanding the format to include better prizes, and a full day of fun for friends and families alongside the matches.
-
-Register as soon as possible and bring as many of your friends as you can! The more the merrier. We can't wait to see you all there!`,
-                        image: "./assets/images/Summer_cup_2026.png"
-                    }
-                ] 
-            };
             
-            // Attempt to load from JSON if it exists on the server to merge additional content
-            try {
-                const response = await fetch('./data.json');
-                if (response.ok) {
-                    const serverData = await response.json();
-                    if (serverData.news && serverData.news.length > 0) {
-                        localData.news = [...localData.news, ...serverData.news];
-                    }
-                    if (serverData.futureEvents) localData.futureEvents = serverData.futureEvents;
-                    if (serverData.pastEvents) localData.pastEvents = serverData.pastEvents;
-                }
-            } catch (err) {
-                console.warn('data.json not found or could not be loaded, using fallback data.');
-            }
-
             // Load data from Google Sheets
             let sheetEvents = [];
             try {
@@ -803,7 +803,7 @@ Register as soon as possible and bring as many of your friends as you can! The m
                 console.warn('Could not load future games sheet.');
             }
 
-            const combinedFuture = [ ...sheetEvents, ...(localData.futureEvents || []) ];
+            const combinedFuture = [ ...sheetEvents ];
             
             // --- SORTING & FILTERING LOGIC ---
             const today = new Date();
@@ -841,8 +841,15 @@ Register as soon as possible and bring as many of your friends as you can! The m
 
             // Render all sections
             renderFutureEvents(processedFutureEvents);
-            renderPastEvents(localData.pastEvents || []);
-            renderNews(localData.news || []);
+            let newsItems = [];
+            try {
+                newsItems = await loadNewsFromSheet();
+            } catch (err) {
+                console.error('Could not load news', err);
+            }
+
+            renderPastEvents([]);
+            renderNews(newsItems);
             
             // Render Leaderboard
             loadLeaderboard();
