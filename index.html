@@ -222,9 +222,9 @@
 
                 <!-- Tabs -->
                 <div class="flex justify-center mb-8 md:mb-12">
-                    <div class="bg-slate-200/80 p-1.5 rounded-xl flex w-full max-w-md relative">
+                    <div class="bg-slate-200/80 p-1.5 rounded-xl flex w-full max-w-md relative animate-fade-in">
                         <button id="tab-future" class="flex-1 px-4 py-2.5 rounded-lg bg-white text-bfc-blue shadow-sm font-bold text-sm transition-all">Upcoming</button>
-                        <button id="tab-past" class="flex-1 px-4 py-2.5 rounded-lg text-slate-500 font-bold text-sm transition-all hover:text-slate-700 hidden">Past</button>
+                        <button id="tab-past" class="flex-1 px-4 py-2.5 rounded-lg text-slate-500 font-bold text-sm transition-all hover:text-slate-700">Past</button>
                     </div>
                 </div>
 
@@ -495,14 +495,23 @@
                     const start = r['start time'] || r['start_time'] || r['start'] || '';
                     const end = r['end time'] || r['end_time'] || r['end'] || '';
                     const pitch = r['pitch'] || r['location'] || r['place'] || '';
+                    const type = r['type'] || 'Match';
+                    
+                    // Pull explicit/fallback images and description to feed past match reviews elegantly
+                    const rawImages = r['images'] || r['gallery'] || '';
+                    const images = rawImages ? rawImages.split(',').map(img => img.trim()).filter(Boolean) : [];
+                    const description = r['description'] || (pitch ? `Friendly football match played at ${pitch}.` : `Weekly friendly session.`);
+
                     return {
-                        type: 'Match',
-                        title: pitch ? `Match at ${pitch}` : (date ? `Match — ${date}` : 'Match'),
+                        type,
+                        title: r['title'] || (pitch ? `Match at ${pitch}` : (date ? `Match — ${date}` : 'Match')),
                         date,
                         time: start && end ? `${start} - ${end}` : (start || end),
                         location: pitch,
                         mapsLink: r['google maps link'] || r['google maps'] || r['maps'] || '',
-                        joinForm: joinFormUrl
+                        joinForm: joinFormUrl,
+                        description,
+                        images
                     };
                 }).filter(e => e.date || e.location); // Basic sanity check
             });
@@ -533,33 +542,30 @@
                     const player = r['player of the week'] || Object.values(r)[0] || '';
                     const winsRaw = r['numbers of wins'] || Object.values(r)[1] || '0';
                     const votesRaw = r['total votes'] || Object.values(r)[2] || '0';
-                    const wins =
-        parseInt((String(winsRaw).match(/-?\d+/) || ['0'])[0], 10) || 0;
+                    const wins = parseInt((String(winsRaw).match(/-?\d+/) || ['0'])[0], 10) || 0;
+                    const totalVotes = parseInt((String(votesRaw).match(/-?\d+/) || ['0'])[0], 10) || 0;
 
-    const totalVotes =
-        parseInt((String(votesRaw).match(/-?\d+/) || ['0'])[0], 10) || 0;
-
-    return {
-        player,
-        wins,
-        totalVotes
-    };
-}).filter(r => r.player);
+                    return {
+                        player,
+                        wins,
+                        totalVotes
+                    };
+                }).filter(r => r.player);
 
                 const sorted = records.sort((a, b) => {
-    // Primary: number of POTW wins
-    if (b.wins !== a.wins) {
-        return b.wins - a.wins;
-    }
+                    // Primary: number of POTW wins
+                    if (b.wins !== a.wins) {
+                        return b.wins - a.wins;
+                    }
 
-    // Secondary: total votes
-    if (b.totalVotes !== a.totalVotes) {
-        return b.totalVotes - a.totalVotes;
-    }
+                    // Secondary: total votes
+                    if (b.totalVotes !== a.totalVotes) {
+                        return b.totalVotes - a.totalVotes;
+                    }
 
-    // Final tie-breaker
-    return a.player.localeCompare(b.player);
-});
+                    // Final tie-breaker
+                    return a.player.localeCompare(b.player);
+                });
                 
                 // Ensure exactly three slots
                 const top = sorted.slice(0,3);
@@ -616,7 +622,6 @@
             }
         }
 
-
         async function loadNewsFromSheet(url = SHEET_NEWS_CSV_URL) {
             const res = await fetch(url, { cache: 'no-cache' });
             if (!res.ok) throw new Error('News sheet fetch failed');
@@ -658,7 +663,6 @@
             return expiry < today;
         }
 
-
         // --- RENDERERS ---
         function renderFutureEvents(events) {
             futureContainer.innerHTML = events.map(event => {
@@ -690,7 +694,7 @@
                     `}
                 </div>
                 `;
-            }).join('') || `<div class="col-span-full py-10 text-center text-slate-500">No upcoming events scheduled currently.</div>`;
+            }).join('') || `<div class="col-span-full py-12 text-center text-slate-500 bg-white border border-slate-100 rounded-2xl"><i data-lucide="calendar-range" class="w-8 h-8 mx-auto mb-3 text-slate-300"></i> No upcoming events scheduled currently.</div>`;
         }
 
         function renderPastEvents(events) {
@@ -698,7 +702,10 @@
                 <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden w-full hover-card">
                     <div class="p-6 md:p-8 border-b border-slate-50">
                         <div class="flex justify-between items-start mb-3">
-                            <h3 class="text-2xl font-bold text-slate-900">${event.title}</h3>
+                            <div>
+                                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 text-slate-600 mb-1 inline-block">${event.type}</span>
+                                <h3 class="text-2xl font-bold text-slate-900 leading-tight">${event.title}</h3>
+                            </div>
                             <span class="text-xs font-bold bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg whitespace-nowrap ml-4">${event.date}</span>
                         </div>
                         <p class="text-slate-600 leading-relaxed">${event.description}</p>
@@ -711,13 +718,13 @@
                         <div class="flex overflow-x-auto hide-scrollbar snap-x snap-mandatory gap-4 pb-2 -mx-6 px-6 md:mx-0 md:px-0">
                             ${event.images.map(img => `
                                 <div class="w-64 h-48 md:w-72 md:h-56 flex-shrink-0 snap-center rounded-2xl overflow-hidden bg-slate-200 shadow-sm border border-slate-200/50">
-                                    <img src="${img}" loading="lazy" class="w-full h-full object-cover hover:scale-105 transition-transform duration-500"/>
+                                    <img src="${img}" loading="lazy" class="w-full h-full object-cover hover:scale-105 transition-transform duration-500" onerror="this.src='https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=500&auto=format&fit=crop&q=60'"/>
                                 </div>
                             `).join('')}
                         </div>
                     </div>` : ''}
                 </div>
-            `).join('');
+            `).join('') || `<div class="col-span-full py-12 text-center text-slate-500 bg-white border border-slate-100 rounded-3xl"><i data-lucide="calendar" class="w-8 h-8 mx-auto mb-3 text-slate-300"></i> No past events recorded yet.</div>`;
         }
 
         let currentNewsItems = [];
@@ -725,7 +732,6 @@
         function renderNews(newsItems) {
             currentNewsItems = newsItems;
             document.getElementById('news-container').innerHTML = newsItems.map((news, index) => {
-                // Determine if it's a local file/URL or an unsplash ID string.
                 const imgSrc = news.image;
 
                 return `
@@ -758,7 +764,6 @@
             document.getElementById('news-modal-date').textContent = news.date;
             document.getElementById('news-modal-title').textContent = news.title;
             
-            // Format content: treat newlines as paragraphs if simple text, or just output summary
             let bodyHtml = '';
             const contentToUse = news.content || news.summary;
             if (contentToUse) {
@@ -823,7 +828,7 @@
             try {
                 sheetEvents = await loadFutureGamesFromSheet(SHEET_FUTURE_GAMES_CSV_URL);
             } catch (err) {
-                console.warn('Could not load future games sheet.');
+                console.warn('Could not load events sheet.');
             }
 
             const combinedFuture = [ ...sheetEvents ];
@@ -835,35 +840,41 @@
             function getEventTimestamp(dateStr) {
                 if (!dateStr) return Infinity;
                 
-                // Standard JS date parsing
+                // Standard ISO format parsing (e.g., "YYYY-MM-DD")
                 let d = new Date(dateStr);
                 if (!isNaN(d.getTime())) return d.getTime();
                 
-                // Fallback parser for DD/MM/YYYY or DD-MM-YYYY
+                // Fallback parser for standard "DD/MM/YYYY" or "DD-MM-YYYY" formats
                 const parts = dateStr.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
                 if (parts) {
                     d = new Date(`${parts[3]}-${parts[2]}-${parts[1]}`);
                     if (!isNaN(d.getTime())) return d.getTime();
                 }
                 
-                // If it still can't be parsed (e.g. "TBD" or "Next Saturday"), 
-                // send it to infinity so it shows up at the very bottom
+                // If it still can't be parsed (e.g. "TBD"), send to Infinity so it is listed last
                 return Infinity; 
             }
 
-            const processedFutureEvents = combinedFuture
-                .map(event => ({ ...event, timestamp: getEventTimestamp(event.date) }))
-                .filter(event => {
-                    // Hide any event (Matches or Tournaments) that are older than today
-                    if (event.timestamp < today.getTime()) {
-                        return false;
-                    }
-                    return true;
-                })
+            // Map timestamps first for clean sorting
+            const eventsWithTimestamps = combinedFuture.map(event => ({
+                ...event,
+                timestamp: getEventTimestamp(event.date)
+            }));
+
+            // Filter upcoming (Future) events: events scheduled for today or later, plus TBD dates (Infinity)
+            const processedFutureEvents = eventsWithTimestamps
+                .filter(event => event.timestamp >= today.getTime())
                 .sort((a, b) => a.timestamp - b.timestamp);
 
-            // Render all sections
+            // Filter past events: events strictly older than today (excluding Infinity)
+            const processedPastEvents = eventsWithTimestamps
+                .filter(event => event.timestamp < today.getTime() && event.timestamp !== Infinity)
+                .sort((a, b) => b.timestamp - a.timestamp); // Show newest past events first
+
+            // Render both upcoming and past lists
             renderFutureEvents(processedFutureEvents);
+            renderPastEvents(processedPastEvents);
+
             let newsItems = [];
             try {
                 newsItems = await loadNewsFromSheet();
@@ -871,7 +882,6 @@
                 console.error('Could not load news', err);
             }
 
-            renderPastEvents([]);
             renderNews(newsItems);
             
             // Render Leaderboard
